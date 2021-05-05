@@ -205,7 +205,7 @@ async def acknowledge_proof(request: web.BaseRequest):
                     if query.get("issuer_name") is not None
                     else context.settings.get("default_label"),
                 },
-                "oca_schema_dri": "bCN4tzZssT4sDDFFTh5AmoesdQeeTSyjNrQ6gxnCerkn",
+                "oca_schema_dri": "asTKuPs7z3GCjSykN3RY4ZUma527w1FsAiLrJByLiuK1",
             },
             credential_type="ProofAcknowledgment",
             subject_public_did=exchange.prover_public_did,
