@@ -93,30 +93,40 @@ async def pds_link_dri(context, dri, link_with_dris):
 
     pds = await pds_get_active(context)
     if "link" in dir(pds):
-        await pds.link(dri, link_with_dris)
+        try:
+            await pds.link(dri, link_with_dris)
+        except PDSError as err:
+            LOGGER.error(
+                "source_dri: %s target_dris: %s error: %s",
+                dri,
+                link_with_dris,
+                err.roll_up,
+            )
+            return False
     else:
         LOGGER.warning(
             "This is an own your data pds extension. current pds doesn't support this method"
         )
+        return False
+    return True
 
 
 async def __test_pds_link():
     context = await build_context()
-
+    await pds_link_dri(
+        context,
+        "zQmNaccqmcrPy93ehV8qEfkNf3ez6EQ94iBxzv3NrA25AXh",
+        "zQmPBDRQpQxbYFvBc71HnvhnMGxzbTiCiWR47vCNUS2cGSa",
+    )
     import random
 
     dri1 = await pds_save_a(context, "124inmjfa0dioq-0dq" + str(random.random()))
     dri2 = await pds_save_a(context, "1asdad24inmjfa0dioq-0dq" + str(random.random()))
-    await pds_link_dri(context, dri1, dri2)
+    result = await pds_link_dri(context, dri1, dri2)
+    assert result == True
 
-    try:
-        await pds_link_dri(context, "1wd1fc", "difhd908f")
-    except PDSRecordNotFoundError as err:
-        assert err
-    except PDSError as err:
-        assert not err
-    else:
-        assert not "invalid codepath"
+    result = await pds_link_dri(context, "1wd1fc", "difhd908f")
+    assert result == False
 
     context = await build_context("local")
 
@@ -124,14 +134,11 @@ async def __test_pds_link():
 
     dri1 = await pds_save_a(context, "124inmjfa0dioq-0dq" + str(random.random()))
     dri2 = await pds_save_a(context, "1asdad24inmjfa0dioq-0dq" + str(random.random()))
-    await pds_link_dri(context, dri1, dri2)
+    result = await pds_link_dri(context, dri1, dri2)
+    assert result == False
 
-    try:
-        await pds_link_dri(context, "1wd1fc", "difhd908f")
-    except PDSRecordNotFoundError as err:
-        assert err
-    except PDSError as err:
-        assert not err
+    result = await pds_link_dri(context, "1wd1fc", "difhd908f")
+    assert result == False
 
 
 async def pds_load_string(context, id: str, *, with_meta: bool = False) -> str:
