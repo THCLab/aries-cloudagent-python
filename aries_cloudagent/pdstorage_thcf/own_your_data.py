@@ -169,6 +169,8 @@ class OwnYourDataVault(BasePDS):
         body = {"source": source_dri, "targets": with_targets}
         async with ClientSession() as session:
             url = f"{self.api_url}/api/relation?p=dri"
+            print("url", url, "body", body)
+
             response = await session.post(
                 url,
                 headers={"Authorization": "Bearer " + self.token["access_token"]},
@@ -499,18 +501,22 @@ def test_format_2():
     }, result
 
 
-async def test_link(vault):
-    await vault.link(
-        "zQmVNgyT8sYwuLby5AMp5NuPnFjwHsLVYsv2QxyUSGfrAs7",
-        ["zQmZZWT86LeNTTemdLc5vs4TybcihrHSpjxJDyCJXY1A4Lw"],
-    )
+async def test_link(vault: OwnYourDataVault):
+    dri1 = "zQmWK8aKAna7XgsEoWHwnqyDcHTyb9WFqXAQ5uMb7qRqm6s"
+    dri2 = "zQmNYBW44DdSisoacg4bfe6gNpmemXicBuKDmgEFMmHAQFf"
+    assert dri1 != dri2
+    res1 = await vault.load(dri1)
+    res2 = await vault.load(dri2)
+    print("First:", res1)
+    print("Second:", res2)
+    await vault.link(dri1, [dri2])
 
 
 async def test_usage_policy_parse():
     vault = OwnYourDataVault()
-
-    vault.settings["client_id"] = "-s2bdkM_cv7KYDF5xg_Lj6vil1ZJaLQJ79duOW7J9g4"
-    vault.settings["client_secret"] = "s_dR8dzbVES_vvc1-nyb1O_cuzyCz2_bRd3Lr12s4ug"
+    #  lgicmntlfmqlguhalz
+    vault.settings["client_id"] = "gVQJTSabNK8DxNzu3PeGWQwBtXSb2Iv7FgYlbzBEbfg"
+    vault.settings["client_secret"] = "9yBmtiyO2YwhtHA9btSrYensVZZ9DLNY1Vq5D-EjxwQ"
     vault.settings["api_url"] = "https://data-vault.eu"
     await test_link(vault)
     await vault.update_token()

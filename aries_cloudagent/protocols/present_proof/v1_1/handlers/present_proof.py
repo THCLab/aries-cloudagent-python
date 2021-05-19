@@ -17,20 +17,9 @@ import json
 from collections import OrderedDict
 
 
-# TODO Error handling
 class PresentProofHandler(BaseHandler):
-    """
-    Message handler logic for incoming credential presentations / incoming proofs.
-    """
-
     async def handle(self, context: RequestContext, responder: BaseResponder):
         debug_handler(self._logger.info, context, PresentProof)
-        verifier: BaseVerifier = await context.inject(BaseVerifier)
-
-        presentation = json.loads(
-            context.message.credential_presentation, object_pairs_hook=OrderedDict
-        )
-
         exchange: THCFPresentationExchange = await retrieve_exchange_by_thread(
             context,
             responder.connection_id,
@@ -43,26 +32,35 @@ class PresentProofHandler(BaseHandler):
         if exchange.state != exchange.STATE_REQUEST_SENT:
             raise HandlerException(reason="Invalid exchange state")
 
-        is_verified = await verifier.verify_presentation(
-            presentation_request=exchange.presentation_request,
-            presentation=presentation,
-            schemas={},
-            credential_definitions={},
-            rev_reg_defs={},
-            rev_reg_entries={},
-        )
+        if context.message.decision:
+            verifier: BaseVerifier = await context.inject(BaseVerifier)
 
-        if not is_verified:
-            raise HandlerException(
-                f"Verifier couldn't verify the presentation! {is_verified}"
+            presentation = json.loads(
+                context.message.credential_presentation, object_pairs_hook=OrderedDict
             )
 
-        await exchange.presentation_pds_set(context, presentation)
-        exchange.verified = True
-        exchange.prover_public_did = context.message.prover_public_did
-        exchange.state = exchange.STATE_PRESENTATION_RECEIVED
-        await exchange.save(context, reason="PresentationExchange updated!")
+            is_verified = await verifier.verify_presentation(
+                presentation_request=exchange.presentation_request,
+                presentation=presentation,
+                schemas={},
+                credential_definitions={},
+                rev_reg_defs={},
+                rev_reg_entries={},
+            )
 
+            if not is_verified:
+                raise HandlerException(
+                    f"Verifier couldn't verify the presentation {is_verified}"
+                )
+
+            await exchange.presentation_pds_set(context, presentation)
+            exchange.verified = True
+            exchange.prover_public_did = context.message.prover_public_did
+            exchange.state = exchange.STATE_PRESENTATION_RECEIVED
+        else:
+            exchange.state = exchange.STATE_PRESENTATION_DENIED
+
+        await exchange.save(context, reason="PresentationExchange updated")
         await responder.send_webhook(
             "present_proof",
             {

@@ -34,6 +34,7 @@ class THCFPresentationExchange(BaseExchangeRecord):
     STATE_PROPOSAL_RECEIVED = "proposal_received"
     STATE_REQUEST_SENT = "request_sent"
     STATE_REQUEST_RECEIVED = "request_received"
+    STATE_PRESENTATION_DENIED = "presentation_denied"
     STATE_PRESENTATION_SENT = "presentation_sent"
     STATE_PRESENTATION_RECEIVED = "presentation_received"
     STATE_PRESENTATION_ACKED = "presentation_acked"

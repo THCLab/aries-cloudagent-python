@@ -17,12 +17,14 @@ class PresentProof(AgentMessage):
         *,
         credential_presentation=None,
         prover_public_did=None,
+        decision: bool = True,
         **kwargs,
     ):
         """Initialize credential issue object."""
         super().__init__(_id=_id, **kwargs)
         self.credential_presentation = credential_presentation
         self.prover_public_did = prover_public_did
+        self.decision = decision
 
 
 class PresentProofSchema(AgentMessageSchema):
@@ -33,5 +35,6 @@ class PresentProofSchema(AgentMessageSchema):
 
         model_class = PresentProof
 
-    credential_presentation = fields.Str(required=True)
-    prover_public_did = fields.Str(required=True)
+    credential_presentation = fields.Str(required=False)
+    prover_public_did = fields.Str(required=False)
+    decision = fields.Bool(required=True)

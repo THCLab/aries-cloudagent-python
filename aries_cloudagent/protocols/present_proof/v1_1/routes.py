@@ -49,6 +49,10 @@ class PresentProofAPISchema(OpenAPISchema):
     credential_id = fields.Str(required=True)
 
 
+class PresentProofRejectAPISchema(OpenAPISchema):
+    exchange_record_id = fields.Str(required=True)
+
+
 class RetrieveExchangeQuerySchema(OpenAPISchema):
     connection_id = fields.Str(required=False)
     thread_id = fields.Str(required=False)
@@ -114,16 +118,6 @@ async def request_presentation_endpoint(request: web.BaseRequest):
 @docs(tags=["present-proof"], summary="Send a credential presentation")
 @request_schema(PresentProofAPISchema())
 async def present_proof_endpoint(request: web.BaseRequest):
-    """
-    Allows to respond to an already existing exchange with a proof presentation.
-
-    Args:
-        request: aiohttp request object
-
-    Returns:
-        The presentation exchange details
-
-    """
     context = request.app["request_context"]
     outbound_handler = request.app["outbound_message_router"]
 
@@ -172,6 +166,35 @@ async def present_proof_endpoint(request: web.BaseRequest):
             "exchange_id": exchange._id,
         }
     )
+
+
+@docs(tags=["present-proof"], summary="Reject a present proof request")
+@request_schema(PresentProofRejectAPISchema())
+async def present_proof_reject_endpoint(request: web.BaseRequest):
+    context = request.app["request_context"]
+    outbound_handler = request.app["outbound_message_router"]
+    body = await request.json()
+    exchange_record_id = body.get("exchange_record_id")
+
+    exchange = await retrieve_exchange(context, exchange_record_id, web.HTTPNotFound)
+
+    if exchange.role != exchange.ROLE_PROVER:
+        raise web.HTTPBadRequest(reason="Invalid exchange role")
+    if exchange.state != exchange.STATE_REQUEST_RECEIVED:
+        raise web.HTTPBadRequest(reason="Invalid exchange state")
+
+    connection_record: ConnectionRecord = await retrieve_connection(
+        context, exchange.connection_id
+    )
+
+    message = PresentProof(decision=False)
+    message.assign_thread_id(exchange.thread_id)
+    await outbound_handler(message, connection_id=connection_record.connection_id)
+
+    exchange.state = exchange.STATE_PRESENTATION_DENIED
+    await exchange.save(context)
+
+    return web.json_response({"exchange_id": exchange._id})
 
 
 @docs(tags=["present-proof"], summary="retrieve exchange record")
@@ -324,6 +347,10 @@ async def register(app: web.Application):
             web.post(
                 "/present-proof/present",
                 present_proof_endpoint,
+            ),
+            web.post(
+                "/present-proof/reject",
+                present_proof_reject_endpoint,
             ),
             web.post(
                 "/present-proof/acknowledge",
