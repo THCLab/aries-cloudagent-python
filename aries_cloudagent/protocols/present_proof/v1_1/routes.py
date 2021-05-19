@@ -65,6 +65,7 @@ class AcknowledgeProofSchema(OpenAPISchema):
     exchange_record_id = fields.Str(required=True)
     status = fields.Boolean(required=True)
     issuer_name = fields.Str(required=False)
+    person_id = fields.Str(required=True)
 
 
 @docs(tags=["present-proof"], summary="Sends a proof presentation")
@@ -224,11 +225,12 @@ async def acknowledge_proof(request: web.BaseRequest):
                 "oca_data": {
                     "verified": str(query.get("status")),
                     "presentation_dri": exchange.presentation_dri,
+                    "person_id": query.get("person_id"),
                     "issuer_name": query.get("issuer_name")
                     if query.get("issuer_name") is not None
                     else context.settings.get("default_label"),
                 },
-                "oca_schema_dri": "asTKuPs7z3GCjSykN3RY4ZUma527w1FsAiLrJByLiuK1",
+                "oca_schema_dri": "dL37iDvZBXE4Jj8G94CcFYU48T6Nk3Ak1usjSgnPE8K1",
             },
             credential_type="ProofAcknowledgment",
             subject_public_did=exchange.prover_public_did,
